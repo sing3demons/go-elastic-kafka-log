@@ -1,32 +1,21 @@
 @url=http://localhost:8080
 
-GET {{url}}/health HTTP/1.1
+GET {{url}}/topics HTTP/1.1
 
 ###
-POST {{url}}/topic HTTP/1.1
+GET {{url}}/topic HTTP/1.1
+Content-Type: application/json
+
+###
+POST {{url}}/logging HTTP/1.1
 Content-Type: application/json
 
 {
-	  "name": "elasticsearch-sink",
-	  "config": {
-		  "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
-		  "tasks.max": "1",
-		  "topics": "example-topic",
-		  "key.ignore": "true",
-		  "schema.ignore": "true",
-		  "connection.url": "http://elastic:9200",
-		  "type.name": "_doc",
-		  "name": "elasticsearch-sink",
-		  "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-		  "value.converter.schemas.enable": "false"
-	  }
-}
-
-###
-POST {{url}}/user-action HTTP/1.1
-Content-Type: application/json
-
-{
-    "action": "login",
-    "userId": "user-1",
+    "header": {
+        "type": "log"
+    },
+    "body": {
+        "action": "login",
+        "userId": "user-1"
+    }
 }
