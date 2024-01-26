@@ -20,7 +20,6 @@ const url = "http://localhost:8083/connectors"
 
 func createConnector() (any, error) {
 	method := "POST"
-
 	payload := strings.NewReader(`
   {
 	  "name": "elasticsearch-sink",
@@ -139,12 +138,12 @@ func main() {
 	})
 
 	r.POST("/user-action", func(c *gin.Context) {
-		// var body UserAction
-		// c.BindJSON(&body)
-		body := UserAction{
-			UserId: "2",
-			Action: "login",
-		}
+		var body UserAction
+		c.BindJSON(&body)
+		// body := UserAction{
+		// 	UserId: "2",
+		// 	Action: "login",
+		// }
 
 		jsonBody, _ := json.Marshal(body)
 
