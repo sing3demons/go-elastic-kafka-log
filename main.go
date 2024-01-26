@@ -18,8 +18,43 @@ type UserAction struct {
 
 const url = "http://localhost:8083/connectors"
 
+type Connector struct {
+	Name   string `json:"name"`
+	Config Config `json:"config"`
+}
+
+type Config struct {
+	ConnectorClass              string `json:"connector.class"`
+	TasksMax                    string `json:"tasks.max"`
+	Topics                      string `json:"topics"`
+	KeyIgnore                   string `json:"key.ignore"`
+	SchemaIgnore                string `json:"schema.ignore"`
+	ConnectionUrl               string `json:"connection.url"`
+	TypeName                    string `json:"type.name"`
+	Name                        string `json:"name"`
+	ValueConverter              string `json:"value.converter"`
+	ValueConverterSchemasEnable string `json:"value.converter.schemas.enable"`
+}
+
 func createConnector() (any, error) {
 	method := "POST"
+
+	_ = Connector{
+		Name: "elasticsearch-sink",
+		Config: Config{
+			ConnectorClass:              "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+			TasksMax:                    "1",
+			Topics:                      "example-topic",
+			KeyIgnore:                   "true",
+			SchemaIgnore:                "true",
+			ConnectionUrl:               "http://elastic:9200",
+			TypeName:                    "_doc",
+			Name:                        "elasticsearch-sink",
+			ValueConverter:              "org.apache.kafka.connect.json.JsonConverter",
+			ValueConverterSchemasEnable: "false",
+		},
+	}
+
 	payload := strings.NewReader(`
   {
 	  "name": "elasticsearch-sink",
