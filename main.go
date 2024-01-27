@@ -11,16 +11,11 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/sing3demons/test-kafka-log/logger"
+	"github.com/sing3demons/test-kafka-log/mlog"
 	"github.com/sing3demons/test-kafka-log/router"
 )
-
-type UserAction struct {
-	UserId string `json:"userId"`
-	Action string `json:"action"`
-}
 
 const url = "http://localhost:8083/connectors"
 
@@ -43,12 +38,12 @@ type Config struct {
 }
 
 type Event struct {
-	Header Header `json:"header"`
-	Body   any    `json:"body"`
+	Timestamp string `json:"@timestamp"`
+	Header    Header `json:"header"`
+	Body      any    `json:"body"`
 }
 
 type Header struct {
-	Timestamp string `json:"timestamp"`
 	Type      string `json:"type"`
 	EventName string `json:"eventName"`
 	SessionId string `json:"sessionId"`
@@ -77,6 +72,7 @@ func main() {
 
 	r := router.NewMicroservice(log)
 	r.GET("/topics", func(c router.IContext) {
+		l := mlog.L(c)
 		result, err := HttpGetClient[[]string](url)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -84,10 +80,16 @@ func main() {
 			})
 			return
 		}
+
+		l.Info("result", logger.LoggerFields{
+			"result": result,
+		})
+
 		c.JSON(http.StatusOK, result)
 	})
 
 	r.GET("/topic", func(c router.IContext) {
+		l := mlog.L(c)
 		results, err := HttpGetClient[[]string](url)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -97,7 +99,7 @@ func main() {
 		}
 
 		topics := strings.Split(os.Getenv("TOPIC_NAMES"), ",")
-		log.Info("result", logger.LoggerFields{
+		l.Info("result", logger.LoggerFields{
 			"result": results,
 			"topics": topics,
 		})
@@ -113,20 +115,31 @@ func main() {
 	})
 
 	r.POST("/logging", func(c router.IContext) {
-		var body Event
-		if err := c.ReadBodyJSON(&body); err != nil {
+		l := mlog.L(c)
+
+		var req any
+		if err := c.ReadBodyJSON(&req); err != nil {
 			c.Error(http.StatusBadRequest, "invalid body", err)
 			return
 		}
 
-		body.Header.Timestamp = time.Now().Format(time.RFC3339)
-		body.Header.EventName = "user-action"
-
-		if body.Header.SessionId == "" {
-			body.Header.SessionId = uuid.NewString()
+		body := Event{
+			Timestamp: time.Now().Format(time.RFC3339),
+			Header: Header{
+				EventName: "eventLog",
+				Type:      "log",
+				SessionId: c.SessionId(),
+			},
+			Body: req,
 		}
 
-		jsonBody, _ := json.Marshal(body)
+		jsonBody, err := json.Marshal(body)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
 
 		msg := &sarama.ProducerMessage{
 			Topic: "example-topic",
@@ -141,7 +154,7 @@ func main() {
 			return
 		}
 
-		log.Info("result", logger.LoggerFields{
+		l.Info("result", logger.LoggerFields{
 			"result": fmt.Sprintf("Partition: %d, Offset: %d", p, o),
 			"topics": "example-topic",
 			"header": body.Header,

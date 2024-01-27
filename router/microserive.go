@@ -32,11 +32,10 @@ type Microservice struct {
 
 type ServiceHandleFunc func(c IContext)
 
-func NewMicroservice(logger logger.ILogger) IMicroservice {
-
+func NewMicroservice(log logger.ILogger) IMicroservice {
 	r := gin.Default()
-	// r.Use(logger.LoggingMiddleware())
-	return &Microservice{r, logger}
+	r.Use(logger.LoggingMiddleware(log))
+	return &Microservice{r, log}
 }
 
 func (ms *Microservice) GET(path string, handler ServiceHandleFunc) {

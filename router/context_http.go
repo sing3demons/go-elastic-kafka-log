@@ -6,6 +6,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/gin-gonic/gin"
+	"github.com/sing3demons/test-kafka-log/logger"
 )
 
 type IContext interface {
@@ -19,6 +20,11 @@ type IContext interface {
 
 	GetHeader() ([]sarama.RecordHeader, map[string]any)
 	SetAuthorization(value string)
+	SessionId() string
+
+	Get(key string) (value any, exists bool)
+	MustGet(key string) any
+	Set(key string, value any)
 }
 
 type HTTPContext struct {
@@ -28,6 +34,27 @@ type HTTPContext struct {
 
 func NewContext(ms *Microservice, c *gin.Context) *HTTPContext {
 	return &HTTPContext{ms, c}
+}
+
+func (c *HTTPContext) Get(key string) (value any, exists bool) {
+	return c.Context.Get(key)
+}
+
+func (c *HTTPContext) MustGet(key string) any {
+	return c.Context.MustGet(key)
+}
+
+func (c *HTTPContext) Set(key string, value any) {
+	c.Context.Set(key, value)
+}
+
+func (c *HTTPContext) SessionId() string {
+
+	session := c.Writer.Header().Get(logger.XSession)
+	if session == "" {
+		return ""
+	}
+	return session
 }
 
 func (c *HTTPContext) JSON(code int, obj any) {
